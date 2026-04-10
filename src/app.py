@@ -14,71 +14,14 @@ from pathlib import Path
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
 
+activities = {}  # Assuming activities is defined somewhere in your actual code
 # Mount the static files directory
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
 
-# In-memory activity database
-activities = {
-    "Chess Club": {
-        "description": "Learn strategies and compete in chess tournaments",
-        "schedule": "Fridays, 3:30 PM - 5:00 PM",
-        "max_participants": 12,
-        "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
-    },
-    "Programming Class": {
-        "description": "Learn programming fundamentals and build software projects",
-        "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
-        "max_participants": 20,
-        "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
-    },
-    "Gym Class": {
-        "description": "Physical education and sports activities",
-        "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
-        "max_participants": 30,
-        "participants": ["john@mergington.edu", "olivia@mergington.edu"]
-    },
-    # Sports activities
-    "Soccer Team": {
-        "description": "Competitive soccer team for all skill levels",
-        "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
-        "max_participants": 22,
-        "participants": []
-    },
-    "Basketball Club": {
-        "description": "Basketball practice and inter-school competitions",
-        "schedule": "Mondays and Wednesdays, 3:30 PM - 5:00 PM",
-        "max_participants": 15,
-        "participants": []
-    },
-    # Artistic activities
-    "Art Club": {
-        "description": "Explore painting, drawing, and mixed media art",
-        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
-        "max_participants": 15,
-        "participants": []
-    },
-    "Drama Club": {
-        "description": "Acting workshops and school play productions",
-        "schedule": "Fridays, 3:30 PM - 5:30 PM",
-        "max_participants": 25,
-        "participants": []
-    },
-    # Intellectual activities
-    "Debate Team": {
-        "description": "Practice debate skills and compete in tournaments",
-        "schedule": "Thursdays, 3:30 PM - 5:00 PM",
-        "max_participants": 12,
-        "participants": []
-    },
-    "Science Fair Club": {
-        "description": "Work on science projects for regional competitions",
-        "schedule": "Mondays, 3:30 PM - 4:30 PM",
-        "max_participants": 20,
-        "participants": []
-    }
-}
+# In-memory activity database (partagé)
+from src.data import activities
 
 
 @app.get("/")
@@ -91,8 +34,7 @@ def get_activities():
     return activities
 
 
-@app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
+def signup_for_activity_logic(activity_name: str, email: str):
     """Sign up a student for an activity"""
     # Validate activity exists
     if activity_name not in activities:
@@ -110,16 +52,23 @@ def signup_for_activity(activity_name: str, email: str):
     return {"message": f"Signed up {email} for {activity_name}"}
 
 
-    # Endpoint pour désinscrire un participant d'une activité
-    from fastapi import status
+@app.post("/activities/{activity_name}/signup")
+def signup_for_activity(activity_name: str, email: str):
+    return signup_for_activity_logic(activity_name, email)
 
-    @app.delete("/activities/{activity_name}/unregister")
-    def unregister_from_activity(activity_name: str, email: str):
-        """Unregister a student from an activity"""
-        if activity_name not in activities:
-            raise HTTPException(status_code=404, detail="Activity not found")
-        activity = activities[activity_name]
-        if email not in activity["participants"]:
-            raise HTTPException(status_code=404, detail="Student not registered for this activity")
-        activity["participants"].remove(email)
-        return {"message": f"Unregistered {email} from {activity_name}"}
+
+# Fonction logique pure pour la désinscription
+def unregister_from_activity_logic(activity_name: str, email: str):
+    """Unregister a student from an activity (pure logic)"""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    activity = activities[activity_name]
+    if email not in activity["participants"]:
+        raise HTTPException(status_code=404, detail="Student not registered for this activity")
+    activity["participants"].remove(email)
+    return {"message": f"Unregistered {email} from {activity_name}"}
+
+
+@app.delete("/activities/{activity_name}/unregister")
+def unregister_from_activity(activity_name: str, email: str):
+    return unregister_from_activity_logic(activity_name, email)
